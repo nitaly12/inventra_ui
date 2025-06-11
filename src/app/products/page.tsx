@@ -5,11 +5,12 @@ import { Product, ProductFormData } from '@/types/product';
 import { ProductCard } from '@/components/products/ProductCard';
 import { ProductForm } from '@/components/products/ProductForm';
 import { Button } from '@/components/ui/Button';
+import { number } from 'zod/v4';
 
 // Mock data - replace with actual API calls
 const mockProducts: Product[] = [
   {
-    id: '1',
+    id: 1,
     name: 'Product 1',
     description: 'Description for product 1',
     price: 99.99,
@@ -37,8 +38,8 @@ export default function ProductsPage() {
     try {
       // Replace with actual API call
       const newProduct: Product = {
-        id: Math.random().toString(),
-        ...data,
+        id: Math.floor(Math.random() * 1000000), // 🔢 now it's a number
+      ...data,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };

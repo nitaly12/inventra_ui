@@ -28,9 +28,12 @@ export function ProductCard({ product, onEdit, onDelete, onView }: ProductCardPr
       </div>
       
       <div className="mt-4 flex items-center justify-between">
-        <span className="text-xl font-bold text-gray-900">
-          ${product.price.toFixed(2)}
-        </span>
+      <p className="text-lg font-semibold">
+          {typeof product.price === 'number'
+            ? `$${product.price.toFixed(2)}`
+            : 'N/A'}
+        </p>
+
         
         <div className="flex gap-2">
           <Button

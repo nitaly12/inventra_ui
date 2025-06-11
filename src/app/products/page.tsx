@@ -1,48 +1,60 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Product, ProductFormData } from '@/types/product';
 import { ProductCard } from '@/components/products/ProductCard';
 import { ProductForm } from '@/components/products/ProductForm';
 import { Button } from '@/components/ui/Button';
 import { number } from 'zod/v4';
+import { createProduct, deleteProduct, fetchProducts, updateProduct } from '@/lib/api/api';
+
 
 // Mock data - replace with actual API calls
-const mockProducts: Product[] = [
-  {
-    id: 1,
-    name: 'Product 1',
-    description: 'Description for product 1',
-    price: 99.99,
-    status: 'active',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  // Add more mock products as needed
-];
+// const mockProducts: Product[] = [
+//   {
+//     id: 1,
+//     name: 'Product 1',
+//     description: 'Description for product 1',
+//     price: 99.99,
+//     status: 'active',
+//     createdAt: new Date().toISOString(),
+//     updatedAt: new Date().toISOString(),
+//   },
+//   // Add more mock products as needed
+// ];
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>(mockProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  useEffect(() => {
+    const loadProducts = async () => {
+      setIsLoading(true);
+      try {
+        const products = await fetchProducts();
+        setProducts(products);
+      } catch (err) {
+        console.error('Failed to load products:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadProducts();
+  }, []);
+  
   const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  (product.name ?? '').toLowerCase().includes((searchQuery ?? '').toLowerCase())
+);
 
   const handleCreate = async (data: ProductFormData) => {
+    console.log('Creating product with data:', data);
     setIsLoading(true);
     try {
-      // Replace with actual API call
-      const newProduct: Product = {
-        id: Math.floor(Math.random() * 1000000), // 🔢 now it's a number
-      ...data,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      const newProduct = await createProduct(data);
       setProducts([...products, newProduct]);
       setIsFormOpen(false);
     } catch (error) {
@@ -50,22 +62,14 @@ export default function ProductsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  };  
 
   const handleUpdate = async (data: ProductFormData) => {
     if (!selectedProduct) return;
-    
     setIsLoading(true);
     try {
-      // Replace with actual API call
-      const updatedProduct: Product = {
-        ...selectedProduct,
-        ...data,
-        updatedAt: new Date().toISOString(),
-      };
-      setProducts(
-        products.map((p) => (p.id === selectedProduct.id ? updatedProduct : p))
-      );
+      const updated = await updateProduct(selectedProduct.id, data);
+      setProducts(products.map((p) => (p.id === updated.id ? updated : p)));
       setIsFormOpen(false);
       setSelectedProduct(null);
     } catch (error) {
@@ -74,13 +78,12 @@ export default function ProductsPage() {
       setIsLoading(false);
     }
   };
-
+  
   const handleDelete = async (product: Product) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
-    
     setIsLoading(true);
     try {
-      // Replace with actual API call
+      await deleteProduct(product.id);
       setProducts(products.filter((p) => p.id !== product.id));
     } catch (error) {
       console.error('Error deleting product:', error);
@@ -88,6 +91,7 @@ export default function ProductsPage() {
       setIsLoading(false);
     }
   };
+  
 
   const handleView = (product: Product) => {
     setSelectedProduct(product);

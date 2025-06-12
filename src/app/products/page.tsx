@@ -7,6 +7,7 @@ import { ProductForm } from '@/components/products/ProductForm';
 import { Button } from '@/components/ui/Button';
 import { number } from 'zod/v4';
 import { createProduct, deleteProduct, fetchProducts, updateProduct } from '@/lib/api/api';
+import { log } from 'console';
 
 
 // Mock data - replace with actual API calls
@@ -36,6 +37,8 @@ export default function ProductsPage() {
       setIsLoading(true);
       try {
         const products = await fetchProducts();
+        console.log("product:",products);
+        
         setProducts(products);
       } catch (err) {
         console.error('Failed to load products:', err);
@@ -47,7 +50,7 @@ export default function ProductsPage() {
   }, []);
   
   const filteredProducts = products.filter((product) =>
-  (product.name ?? '').toLowerCase().includes((searchQuery ?? '').toLowerCase())
+  (product.proName ?? '').toLowerCase().includes((searchQuery ?? '').toLowerCase())
 );
 
   const handleCreate = async (data: ProductFormData) => {
@@ -66,10 +69,14 @@ export default function ProductsPage() {
 
   const handleUpdate = async (data: ProductFormData) => {
     if (!selectedProduct) return;
+    console.log("data:",data);
+    
     setIsLoading(true);
     try {
-      const updated = await updateProduct(selectedProduct.id, data);
-      setProducts(products.map((p) => (p.id === updated.id ? updated : p)));
+      const updated = await updateProduct(selectedProduct.proId, data);
+      console.log("updated:",updated);
+      
+      setProducts(products.map((p) => (p.proId === updated.proId ? updated : p)));
       setIsFormOpen(false);
       setSelectedProduct(null);
     } catch (error) {
@@ -83,8 +90,8 @@ export default function ProductsPage() {
     if (!confirm('Are you sure you want to delete this product?')) return;
     setIsLoading(true);
     try {
-      await deleteProduct(product.id);
-      setProducts(products.filter((p) => p.id !== product.id));
+      await deleteProduct(product.proId);
+      setProducts(products.filter((p) => p.proId !== product.proId));
     } catch (error) {
       console.error('Error deleting product:', error);
     } finally {
@@ -131,7 +138,7 @@ export default function ProductsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProducts.map((product) => (
           <ProductCard
-            key={product.id}
+            key={product.proId}
             product={product}
             onEdit={handleEdit}
             onDelete={handleDelete}
@@ -179,24 +186,24 @@ export default function ProductsPage() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-medium text-gray-900">
-                    {selectedProduct.name}
+                    {selectedProduct.proName}
                   </h3>
                   <p className="text-gray-500 mt-1">
-                    {selectedProduct.description}
+                    {selectedProduct.proDes}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Price</p>
                     <p className="text-lg font-semibold">
-                      ${selectedProduct.price.toFixed(2)}
+                      ${selectedProduct.proPrice.toFixed(2)}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Status</p>
                     <p
                       className={`inline-block px-2 py-1 rounded-full text-sm font-medium ${
-                        selectedProduct.status === 'active'
+                        selectedProduct.status === 'ACTIVE'
                           ? 'bg-green-100 text-green-800'
                           : 'bg-gray-100 text-gray-800'
                       }`}
@@ -210,7 +217,7 @@ export default function ProductsPage() {
                     <p className="text-sm text-gray-500 mb-2">Image</p>
                     <img
                       src={selectedProduct.imageUrl}
-                      alt={selectedProduct.name}
+                      alt={selectedProduct.proName}
                       className="w-full h-48 object-cover rounded-lg"
                     />
                   </div>

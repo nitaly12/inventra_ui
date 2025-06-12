@@ -13,12 +13,12 @@ export function ProductCard({ product, onEdit, onDelete, onView }: ProductCardPr
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">{product.name}</h3>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">{product.description}</p>
+          <h3 className="text-lg font-semibold text-gray-900">{product.proName}</h3>
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">{product.proDes}</p>
         </div>
         <span
           className={`px-2 py-1 rounded-full text-xs font-medium ${
-            product.status === 'active'
+            product.status === 'ACTIVE'
               ? 'bg-green-100 text-green-800'
               : 'bg-gray-100 text-gray-800'
           }`}
@@ -29,8 +29,8 @@ export function ProductCard({ product, onEdit, onDelete, onView }: ProductCardPr
       
       <div className="mt-4 flex items-center justify-between">
       <p className="text-lg font-semibold">
-          {typeof product.price === 'number'
-            ? `$${product.price.toFixed(2)}`
+          {typeof product.proPrice === 'number'
+            ? `$${product.proPrice.toFixed(2)}`
             : 'N/A'}
         </p>
 

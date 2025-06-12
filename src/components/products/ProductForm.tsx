@@ -1,18 +1,51 @@
 'use client';
+
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Product, ProductFormData } from '@/types/product';
-import { Input } from '../ui/Input';
-import { Button } from '../ui/Button';
+import { Product } from '@/types/product';
+import { toast, ToastContainer } from 'react-toastify';
+import axios from 'axios';
 
+// Simple Input component example that accepts error as string | undefined
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  error?: string;
+}
+
+function Input({ label, error, ...props }: InputProps) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-gray-700">{label}</label>
+      <input
+        className={`w-full px-4 py-2 border rounded-lg outline-none transition-all duration-200
+          focus:ring-2 focus:ring-blue-500 focus:border-transparent
+          ${error ? 'border-red-500' : 'border-gray-300'}`}
+        {...props}
+      />
+      {error && <p className="text-sm text-red-500">{error}</p>}
+    </div>
+  );
+}
+
+// Zod validation schema
 const productSchema = z.object({
-  name: z.string().min(1, 'Product name is required'),
-  description: z.string().min(1, 'Description is required'),
-  price: z.number().min(0, 'Price must be greater than or equal to 0'),
-  status: z.enum(['active', 'inactive']),
-  imageUrl: z.string().optional(),
+  proName: z.string().min(1, 'Product name is required'),
+  proDes: z.string().min(1, 'Description is required'),
+  proPrice: z.number().min(0, 'Price must be greater than or equal to 0'),
+  status: z.enum(['ACTIVE', 'INACTIVE']),
+  imageFile: z
+    .any()
+    .optional()
+    .refine(
+      (file) =>
+        !file || file.length === 0 || file[0]?.type?.startsWith('image/'),
+      'Uploaded file must be an image'
+    ),
+
 });
+
+type ProductFormData = z.infer<typeof productSchema>;
 
 interface ProductFormProps {
   product?: Product;
@@ -21,7 +54,12 @@ interface ProductFormProps {
   isLoading?: boolean;
 }
 
-export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductFormProps) {
+export function ProductForm({
+  product,
+  onSubmit,
+  onCancel,
+  isLoading,
+}: ProductFormProps) {
   const {
     register,
     handleSubmit,
@@ -30,46 +68,66 @@ export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductF
     resolver: zodResolver(productSchema),
     defaultValues: product
       ? {
-          name: product.name,
-          description: product.description,
-          price: product.price,
-          status: product.status,
-          imageUrl: product.imageUrl,
-        }
-      : {
-          status: 'active',
-        },
+        proName: product.proName,
+        proDes: product.proDes,
+        proPrice: product.proPrice,
+        status: product.status, // should be 'ACTIVE' or 'INACTIVE'
+      }
+      : { status: 'ACTIVE' }
+
+
   });
 
+  const handleFormSubmit = async (data: ProductFormData) => {
+    try {
+      const imageFile = data.imageFile?.[0]; // get file from FileList
+      const formData = new FormData();
+
+      formData.append('proName', data.proName);
+      // formData.append('proDes', data.proDes);
+      formData.append('proPrice', String(data.proPrice));
+      formData.append('status', data.status);
+
+      if (imageFile) {
+        formData.append('image', imageFile); // backend expects 'image'
+      }
+
+      // Send formData to backend (example)
+      const response = await axios.post('http://localhost:8080/api/v1/products', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+
+      // if (!response.ok) throw new Error('Upload failed');
+
+      toast.success('Product saved successfully!');
+      onSubmit(data); // Call onSubmit passed from parent
+    } catch (error) {
+      toast.error('Failed to save product.');
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
       <Input
         label="Product Name"
-        error={errors.name?.message}
-        {...register('name')}
+        // error={errors.proName?.message}
+        {...register('proName')}
+        name="proName" // explicitly add this
       />
+
 
       <div className="relative">
         <textarea
           className={`w-full px-4 py-2 border rounded-lg outline-none transition-all duration-200
             focus:ring-2 focus:ring-blue-500 focus:border-transparent
-            ${errors.description ? 'border-red-500' : 'border-gray-300'}
-            peer placeholder-transparent`}
+            ${errors.proDes ? 'border-red-500' : 'border-gray-300'}`}
           placeholder="Description"
-          {...register('description')}
+          {...register('proDes')}
           rows={4}
         />
-        <label
-          className={`absolute left-4 -top-2.5 px-1 text-sm transition-all duration-200
-            peer-placeholder-shown:text-base peer-placeholder-shown:top-2
-            peer-focus:-top-2.5 peer-focus:text-sm
-            bg-white
-            ${errors.description ? 'text-red-500' : 'text-gray-600'}`}
-        >
-          Description
-        </label>
-        {errors.description && (
-          <p className="mt-1 text-sm text-red-500">{errors.description.message}</p>
+        {errors.proDes?.message && (
+          <p className="mt-1 text-sm text-red-500">{errors.proDes.message}</p>
         )}
       </div>
 
@@ -77,17 +135,34 @@ export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductF
         label="Price"
         type="number"
         step="0.01"
-        error={errors.price?.message}
-        {...register('price', { valueAsNumber: true })}
+        error={errors.proPrice?.message}
+        {...register('proPrice', { valueAsNumber: true })}
+        name="proPrice"
       />
 
-      <Input
-        label="Image URL"
-        type="url"
-        error={errors.imageUrl?.message}
-        {...register('imageUrl')}
-      />
+      {/* File Upload Field */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">
+          Upload Image
+        </label>
+        <input
+          type="file"
+          accept="image/*"
+          {...register('imageFile')}
+          className="block w-full text-sm text-gray-500
+            file:mr-4 file:py-2 file:px-4
+            file:rounded-md file:border-0
+            file:text-sm file:font-semibold
+            file:bg-blue-50 file:text-blue-700
+            hover:file:bg-blue-100"
+        />
+        {errors.imageFile && typeof errors.imageFile.message === 'string' && (
+          <p className="text-sm text-red-500">{errors.imageFile.message}</p>
+        )}
 
+      </div>
+
+      {/* Status Dropdown */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Status</label>
         <select
@@ -96,27 +171,35 @@ export function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductF
             ${errors.status ? 'border-red-500' : 'border-gray-300'}`}
           {...register('status')}
         >
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          <option value="ACTIVE">Active</option>
+          <option value="INACTIVE">Inactive</option>
+
         </select>
-        {errors.status && (
-          <p className="mt-1 text-sm text-red-500">{errors.status.message}</p>
+        {errors.status?.message && (
+          <p className="text-sm text-red-500">{errors.status.message}</p>
         )}
       </div>
 
+      {/* Buttons */}
       <div className="flex justify-end gap-3 pt-4">
-        <Button
+        <button
           type="button"
-          variant="secondary"
+          className="px-4 py-2 border rounded bg-gray-200 hover:bg-gray-300"
           onClick={onCancel}
           disabled={isLoading}
         >
           Cancel
-        </Button>
-        <Button type="submit" isLoading={isLoading}>
-          {product ? 'Update Product' : 'Create Product'}
-        </Button>
+        </button>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+        >
+          {isLoading ? 'Saving...' : product ? 'Update Product' : 'Create Product'}
+        </button>
       </div>
+
+      <ToastContainer />
     </form>
   );
-} 
+}
